@@ -1,0 +1,44 @@
+!pip install pandas openpyxl duckduckgo-search
+
+import pandas as pd
+from duckduckgo_search import DDGS
+import time
+
+def get_company_website_duckduckgo(company_name):
+    try:
+        with DDGS() as ddgs:
+            results = ddgs.text(company_name, max_results=3)
+            for result in results:
+                url = result.get('href', '')
+
+                # Filter out irrelevant or third-party domains
+                if not any(domain in url for domain in [
+                    'linkedin.com', 'crunchbase.com', 'facebook.com',
+                    'twitter.com', 'wikipedia.org', 'youtube.com', 'instagram.com'
+                ]):
+                    return url
+    except Exception as e:
+        print(f"Error searching for {company_name}: {e}")
+    return 'na'
+
+def main():
+    input_file = 'ManiGanji/pharma_food_companies_500.xlsx'  # Input Excel file with 'Company Name' column
+    df = pd.read_excel(input_file)
+
+    if 'Company Name' not in df.columns:
+        raise ValueError("Excel must contain a 'Company Name' column")
+
+    urls = []
+    for idx, name in enumerate(df['Company Name']):
+        print(f"Searching {idx + 1}/{len(df)}: {name}")
+        url = get_company_website_duckduckgo(name)
+        urls.append(url)
+        time.sleep(1)  # Polite delay to avoid blocking
+
+    df['Website URL'] = urls
+    output_file = 'ManiGanji/company.xlsx'
+    df.to_excel(output_file, index=False)
+    print(f"✅ Output saved to {output_file}")
+
+if __name__ == "__main__":
+    main()
